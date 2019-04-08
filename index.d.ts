@@ -1,5 +1,5 @@
 declare class RootSiblings {
-    constructor(el: JSX.Element, callback?: () => void, store?: object);
+    constructor(el: JSX.Element, rootTag?: number, callback?: () => void, store?: object);
 
     update(el: JSX.Element, callback?: () => void, store?: object): void;
 

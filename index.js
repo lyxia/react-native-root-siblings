@@ -29,17 +29,22 @@ class Provider extends Component {
 
 AppRegistry.setWrapperComponentProvider(function() {
   return function RootSiblingsWrapper(props) {
+    let newProps = props;
+    while(newProps && newProps.rootTag === undefined) {
+      newProps = newProps.children.props
+    }
+    const rootTag = newProps ? newProps.rootTag : -1
     return (
       <View style={styles.container}>
         {props.children}
-        <RootSiblings />
+        <RootSiblings rootTag={rootTag}/>
       </View>
     );
   };
 });
 
 let uuid = 0;
-const triggers = [];
+const triggers = {};
 class RootSiblings extends Component {
   _updatedSiblings = {};
   _siblings = {};
@@ -48,11 +53,13 @@ class RootSiblings extends Component {
   constructor(props) {
     super(props);
     this._siblings = {};
-    triggers.push(this._update);
+    triggers[props.rootTag] = this._update
+    // triggers.push(this._update);
   }
 
   componentWillUnmount() {
-    triggers.splice(triggers.indexOf(this._update), 1);
+    delete triggers[this.props.rootTag]
+    // triggers.splice(triggers.indexOf(this._update), 1);
   }
 
   _update = (id, element, callback, store) => {
@@ -102,18 +109,32 @@ class RootSiblings extends Component {
 }
 
 export default class RootSiblingManager {
-  constructor(element, callback, store) {
+  constructor(element, rootTag, callback, store) {
     const id = uuid++;
     function update(element, callback, store) {
-      triggers.forEach(function(trigger) {
-        trigger(id, element, callback, store);
-      });
+      if(rootTag && triggers[rootTag]) {
+        triggers[rootTag](id, element, callback, store);
+      } else {
+        Object.keys(triggers).forEach(function(triggerKey) {
+          triggers[triggerKey](id, element, callback, store);
+        });
+      }
+      // triggers.forEach(function(trigger) {
+      //   trigger(id, element, callback, store);
+      // });
     }
 
     function destroy(callback) {
-      triggers.forEach(function(trigger) {
-        trigger(id, null, callback);
-      });
+      if(rootTag && triggers[rootTag]) {
+        triggers[rootTag](id, null, callback);
+      } else {
+        Object.keys(triggers).forEach(function(triggerKey) {
+          triggers[triggerKey](id, null, callback);
+        });
+      }
+      // triggers.forEach(function(trigger) {
+      //   trigger(id, null, callback);
+      // });
     }
 
     update(element, callback, store);
